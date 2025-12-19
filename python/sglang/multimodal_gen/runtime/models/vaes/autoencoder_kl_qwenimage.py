@@ -128,7 +128,7 @@ class QwenImageRMS_norm(nn.Module):
         self.gamma = nn.Parameter(torch.ones(shape))
         self.bias = nn.Parameter(torch.zeros(shape)) if bias else 0.0
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return (
             F.normalize(x, dim=(1 if self.channel_first else -1))
             * self.scale
@@ -198,7 +198,7 @@ class QwenImageResample(nn.Module):
         else:
             self.resample = nn.Identity()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, c, t, h, w = x.size()
         if self.mode == "upsample3d":
             x = self.time_conv(x)
@@ -244,7 +244,7 @@ class QwenImageResidualBlock(nn.Module):
             nn.Conv3d(in_dim, out_dim, 1) if in_dim != out_dim else nn.Identity()
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Apply shortcut connection
         h = self.conv_shortcut(x)
 
@@ -277,7 +277,7 @@ class QwenImageAttentionBlock(nn.Module):
         dim (int): The number of channels in the input tensor.
     """
 
-    def __init__(self, dim):
+    def __init__(self, dim: int) -> None:
         super().__init__()
         self.dim = dim
 
@@ -286,7 +286,7 @@ class QwenImageAttentionBlock(nn.Module):
         self.to_qkv = nn.Conv2d(dim, dim * 3, 1)
         self.proj = nn.Conv2d(dim, dim, 1)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         identity = x
         batch_size, channels, time, height, width = x.size()
 
@@ -334,7 +334,7 @@ class QwenImageMidBlock(nn.Module):
         dropout: float = 0.0,
         non_linearity: str = "silu",
         num_layers: int = 1,
-    ):
+    ) -> None:
         super().__init__()
         self.dim = dim
 
@@ -349,7 +349,7 @@ class QwenImageMidBlock(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # First residual block
         x = self.resnets[0](x)
 
@@ -389,7 +389,7 @@ class QwenImageEncoder3d(nn.Module):
         dropout=0.0,
         non_linearity: str = "silu",
         input_channels: int = 3,
-    ):
+    ) -> None:
         super().__init__()
         # dim = config.arch_config.dim
         # z_dim = config.arch_config.z_dim
@@ -443,7 +443,7 @@ class QwenImageEncoder3d(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         ## conv_in
         x = self.conv_in(x)
 
@@ -484,7 +484,7 @@ class QwenImageUpBlock(nn.Module):
         dropout: float = 0.0,
         upsample_mode: Optional[str] = None,
         non_linearity: str = "silu",
-    ):
+    ) -> None:
         super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
@@ -510,7 +510,7 @@ class QwenImageUpBlock(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass through the upsampling block.
 
@@ -554,7 +554,7 @@ class QwenImageDecoder3d(nn.Module):
         dropout=0.0,
         non_linearity: str = "silu",
         input_channels=3,
-    ):
+    ) -> None:
         super().__init__()
         self.dim = dim
         self.z_dim = z_dim
@@ -610,7 +610,7 @@ class QwenImageDecoder3d(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         ## conv1
         x = self.conv_in(x)
 
@@ -758,7 +758,7 @@ class AutoencoderKLQwenImage(nn.Module):
         """
         self.use_slicing = False
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         for m in self.encoder.modules():
             if isinstance(m, CausalConv3d):
                 m.clear_cache()
@@ -766,7 +766,7 @@ class AutoencoderKLQwenImage(nn.Module):
             if isinstance(m, CausalConv3d):
                 m.clear_cache()
 
-    def _encode(self, x: torch.Tensor):
+    def _encode(self, x: torch.Tensor) -> torch.Tensor:
         _, _, num_frame, height, width = x.shape
 
         if self.use_tiling and (width > self.tile_sample_min_width or height > self.tile_sample_min_height):

@@ -35,11 +35,11 @@ class AvgDown3D(nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        factor_t,
-        factor_s=1,
-    ):
+        in_channels: int,
+        out_channels: int,
+        factor_t: int,
+        factor_s: int = 1,
+    ) -> None:
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -91,9 +91,9 @@ class DupUp3D(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        factor_t,
+        factor_t: int,
         factor_s=1,
-    ):
+    ) -> None:
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -239,7 +239,7 @@ class WanRMS_norm(nn.Module):
         self.gamma = nn.Parameter(torch.ones(shape))
         self.bias = nn.Parameter(torch.zeros(shape)) if bias else 0.0
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return (
             F.normalize(x, dim=(1 if self.channel_first else -1))
             * self.scale
@@ -259,7 +259,7 @@ class WanUpsample(nn.Upsample):
         torch.Tensor: Upsampled tensor with the same data type as the input.
     """
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return super().forward(x.float()).type_as(x)
 
 
@@ -316,8 +316,8 @@ class WanResample(nn.Module):
         else:
             self.resample = nn.Identity()
 
-    def forward(self, x):
-        b, c, t, h, w = x.size()
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        b, c, t, h, w = x.shape
         if self.mode == "upsample3d":
             x = self.time_conv(x)
         t = x.size(2)
@@ -362,7 +362,7 @@ class WanResidualBlock(nn.Module):
             nn.Conv3d(in_dim, out_dim, 1) if in_dim != out_dim else nn.Identity()
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Apply shortcut connection
         h = self.conv_shortcut(x)
 
@@ -395,7 +395,7 @@ class WanAttentionBlock(nn.Module):
         dim (int): The number of channels in the input tensor.
     """
 
-    def __init__(self, dim) -> None:
+    def __init__(self, dim: int) -> None:
         super().__init__()
         self.dim = dim
 
@@ -404,7 +404,7 @@ class WanAttentionBlock(nn.Module):
         self.to_qkv = nn.Conv2d(dim, dim * 3, 1)
         self.proj = nn.Conv2d(dim, dim, 1)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         identity = x
         batch_size, channels, time, height, width = x.size()
 
@@ -452,7 +452,7 @@ class WanMidBlock(nn.Module):
         dropout: float = 0.0,
         non_linearity: str = "silu",
         num_layers: int = 1,
-    ):
+    ) -> None:
         super().__init__()
         self.dim = dim
 
@@ -467,7 +467,7 @@ class WanMidBlock(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # First residual block
         x = self.resnets[0](x)
 
@@ -485,13 +485,13 @@ class WanResidualDownBlock(nn.Module):
 
     def __init__(
         self,
-        in_dim,
-        out_dim,
-        dropout,
-        num_res_blocks,
-        temperal_downsample=False,
-        down_flag=False,
-    ):
+        in_dim: int,
+        out_dim: int,
+        dropout: float,
+        num_res_blocks: int,
+        temperal_downsample: bool = False,
+        down_flag: bool = False,
+    ) -> None:
         super().__init__()
 
         # Shortcut path with downsample
@@ -516,7 +516,7 @@ class WanResidualDownBlock(nn.Module):
         else:
             self.downsampler = None
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_copy = x.clone()
         for resnet in self.resnets:
             x = resnet(x)
@@ -553,7 +553,7 @@ class WanEncoder3d(nn.Module):
         dropout=0.0,
         non_linearity: str = "silu",
         is_residual: bool = False,  # wan 2.2 vae use a residual downblock
-    ):
+    ) -> None:
         super().__init__()
         self.dim = dim
         self.z_dim = z_dim
@@ -610,7 +610,7 @@ class WanEncoder3d(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         ## conv_in
         x = self.conv_in(x)
 
@@ -653,7 +653,7 @@ class WanResidualUpBlock(nn.Module):
         temperal_upsample: bool = False,
         up_flag: bool = False,
         non_linearity: str = "silu",
-    ):
+    ) -> None:
         super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
@@ -690,7 +690,7 @@ class WanResidualUpBlock(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass through the upsampling block.
         Args:
@@ -735,7 +735,7 @@ class WanUpBlock(nn.Module):
         dropout: float = 0.0,
         upsample_mode: str | None = None,
         non_linearity: str = "silu",
-    ):
+    ) -> None:
         super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
@@ -759,7 +759,7 @@ class WanUpBlock(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass through the upsampling block.
 
@@ -794,17 +794,17 @@ class WanDecoder3d(nn.Module):
 
     def __init__(
         self,
-        dim=128,
-        z_dim=4,
-        dim_mult=(1, 2, 4, 4),
-        num_res_blocks=2,
-        attn_scales=(),
-        temperal_upsample=(False, True, True),
-        dropout=0.0,
+        dim: int = 128,
+        z_dim: int = 4,
+        dim_mult: tuple[int, ...] = (1, 2, 4, 4),
+        num_res_blocks: int = 2,
+        attn_scales: tuple[float, ...] = (),
+        temperal_upsample: tuple[bool, ...] = (False, True, True),
+        dropout: float = 0.0,
         non_linearity: str = "silu",
         out_channels: int = 3,
         is_residual: bool = False,
-    ):
+    ) -> None:
         super().__init__()
         self.dim = dim
         self.z_dim = z_dim
@@ -870,7 +870,7 @@ class WanDecoder3d(nn.Module):
 
         self.gradient_checkpointing = False
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         ## conv1
         x = self.conv_in(x)
 
@@ -890,7 +890,7 @@ class WanDecoder3d(nn.Module):
         return x
 
 
-def patchify(x, patch_size):
+def patchify(x: torch.Tensor, patch_size: int) -> torch.Tensor:
     if patch_size == 1:
         return x
 
@@ -909,7 +909,7 @@ def patchify(x, patch_size):
     return x
 
 
-def unpatchify(x, patch_size):
+def unpatchify(x: torch.Tensor, patch_size: int) -> torch.Tensor:
     if patch_size == 1:
         return x
 
@@ -985,7 +985,7 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
         self.use_feature_cache = config.use_feature_cache
 
     def clear_cache(self) -> None:
-        # cache decode
+        # cache decoder
         if self.config.load_decoder:
             for m in self.decoder.modules():
                 if isinstance(m, CausalConv3d):
@@ -993,7 +993,7 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
                 elif isinstance(m, DupUp3D):
                     m.first_chunk = True
 
-        # cache encode
+        # cache encoder
         if self.config.load_encoder:
             for m in self.encoder.modules():
                 if isinstance(m, CausalConv3d):
