@@ -181,7 +181,7 @@ class CausalConv3d(nn.Conv3d):
             else x_with_cache
         )
         x = super().forward(x_with_cache)
-        self.prev_cache = x_with_cache.narrow(2, t, self.pad_t)
+        self.prev_cache.copy_(x_with_cache.narrow(2, t, self.pad_t))
         return x
 
 
@@ -196,7 +196,7 @@ class WanCausalConv3d(CausalConv3d):
 class WanCausalEncodeTimeConv3d(CausalConv3d):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.prev_cache is None:
-            self.prev_cache = x
+            self.prev_cache = x.clone()
             return x
         return self._forward_with_cache(x)
 
@@ -998,8 +998,7 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
             for m in self.encoder.modules():
                 if isinstance(m, CausalConv3d):
                     m.clear_cache()
-                elif isinstance(m, DupUp3D):
-                    m.first_chunk = True
+        torch.cuda.empty_cache()
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         if self.use_feature_cache:
@@ -1020,6 +1019,7 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
             mu, logvar = enc[:, : self.z_dim, :, :, :], enc[:, self.z_dim :, :, :, :]
             enc = torch.cat([mu, logvar], dim=1)
             enc = DiagonalGaussianDistribution(enc)
+            self.clear_cache()
         else:
             enc = ParallelTiledVAE.encode(self, x)
 
@@ -1031,6 +1031,7 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
         enc = self.quant_conv(out)
         mu, logvar = enc[:, : self.z_dim, :, :, :], enc[:, self.z_dim :, :, :, :]
         enc = torch.cat([mu, logvar], dim=1)
+        self.clear_cache()
         return enc
 
     def tiled_encode(self, x: torch.Tensor) -> torch.Tensor:
@@ -1056,15 +1057,18 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
 
             out = out.float()
             out = torch.clamp(out, min=-1.0, max=1.0)
+            self.clear_cache()
         else:
             out = ParallelTiledVAE.decode(self, z)
 
         return out
 
     def _decode(self, z: torch.Tensor, first_frame=False) -> torch.Tensor:
+        self.clear_cache()
         x = self.post_quant_conv(z)
         out = self.decoder(x)
         out = torch.clamp(out, min=-1.0, max=1.0)
+        self.clear_cache()
         return out
 
     def tiled_decode(self, z: torch.Tensor) -> torch.Tensor:
