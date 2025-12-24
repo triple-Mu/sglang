@@ -1063,7 +1063,7 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
 
         return out
 
-    def _decode(self, z: torch.Tensor, first_frame=False) -> torch.Tensor:
+    def _decode(self, z: torch.Tensor) -> torch.Tensor:
         self.clear_cache()
         x = self.post_quant_conv(z)
         out = self.decoder(x)
