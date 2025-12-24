@@ -773,7 +773,6 @@ class AutoencoderKLQwenImage(nn.Module):
         if self.use_tiling and (width > self.tile_sample_min_width or height > self.tile_sample_min_height):
             return self.tiled_encode(x)
 
-        self.clear_cache()
         iter_ = 1 + (num_frame - 1) // 4
         out = []
         for i in range(iter_):
@@ -822,7 +821,6 @@ class AutoencoderKLQwenImage(nn.Module):
         if self.use_tiling and (width > tile_latent_min_width or height > tile_latent_min_height):
             return self.tiled_decode(z, return_dict=return_dict)
 
-        self.clear_cache()
         x = self.post_quant_conv(z)
         out = []
         for i in range(num_frame):
@@ -903,7 +901,6 @@ class AutoencoderKLQwenImage(nn.Module):
         for i in range(0, height, self.tile_sample_stride_height):
             row = []
             for j in range(0, width, self.tile_sample_stride_width):
-                self.clear_cache()
                 time = []
                 frame_range = 1 + (num_frames - 1) // 4
                 for k in range(frame_range):
@@ -921,8 +918,8 @@ class AutoencoderKLQwenImage(nn.Module):
                     tile = self.quant_conv(tile)
                     time.append(tile)
                 row.append(torch.cat(time, dim=2))
+                self.clear_cache()
             rows.append(row)
-        self.clear_cache()
 
         result_rows = []
         for i, row in enumerate(rows):
@@ -972,7 +969,6 @@ class AutoencoderKLQwenImage(nn.Module):
         for i in range(0, height, tile_latent_stride_height):
             row = []
             for j in range(0, width, tile_latent_stride_width):
-                self.clear_cache()
                 time = []
                 for k in range(num_frames):
                     tile = z[:, :, k: k + 1, i: i + tile_latent_min_height, j: j + tile_latent_min_width]
@@ -980,8 +976,8 @@ class AutoencoderKLQwenImage(nn.Module):
                     decoded = self.decoder(tile)
                     time.append(decoded)
                 row.append(torch.cat(time, dim=2))
+                self.clear_cache()
             rows.append(row)
-        self.clear_cache()
 
         result_rows = []
         for i, row in enumerate(rows):

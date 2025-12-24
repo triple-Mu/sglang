@@ -1002,7 +1002,6 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         if self.use_feature_cache:
-            self.clear_cache()
             if self.config.patch_size is not None:
                 x = patchify(x, patch_size=self.config.patch_size)
             t = x.shape[2]
@@ -1026,7 +1025,6 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
         return enc
 
     def _encode(self, x: torch.Tensor) -> torch.Tensor:
-        self.clear_cache()
         out = self.encoder(x)
         enc = self.quant_conv(out)
         mu, logvar = enc[:, : self.z_dim, :, :, :], enc[:, self.z_dim :, :, :, :]
@@ -1044,7 +1042,6 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
 
     def decode(self, z: torch.Tensor) -> torch.Tensor:
         if self.use_feature_cache:
-            self.clear_cache()
             iter_ = z.shape[2]
             x = self.post_quant_conv(z)
             out = []
@@ -1064,7 +1061,6 @@ class AutoencoderKLWan(nn.Module, ParallelTiledVAE):
         return out
 
     def _decode(self, z: torch.Tensor) -> torch.Tensor:
-        self.clear_cache()
         x = self.post_quant_conv(z)
         out = self.decoder(x)
         out = torch.clamp(out, min=-1.0, max=1.0)
